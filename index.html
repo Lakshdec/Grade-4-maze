@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Grade 4 AI Bot</title>
+    <style>
+        body { background: #121212; color: #00ff00; font-family: 'Courier New', monospace; text-align: center; }
+        #chat-window { width: 80%; max-width: 500px; height: 300px; border: 2px solid #00ff00; margin: 20px auto; padding: 15px; overflow-y: auto; background: #000; text-align: left; }
+        input { width: 60%; padding: 10px; background: #000; border: 1px solid #00ff00; color: #00ff00; }
+        button { padding: 10px 20px; background: #00ff00; color: #000; border: none; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>SYSTEM_AI_ONLINE 🤖</h1>
+    <div id="log">Welcome. I am running on your website!</div>
+    <div id="chat-window"></div>
+    <input type="text" id="userInput" placeholder="Type a message...">
+    <button onclick="talk()">SEND</button>
+
+    <script>
+        function talk() {
+            var input = document.getElementById("userInput").value.toLowerCase();
+            var chat = document.getElementById("chat-window");
+            var reply = "I am still learning, but you are a great coder!";
+
+            if (input.includes("hi") || input.includes("hello")) {
+                reply = "Greetings, Human Creator!";
+            } else if (input.includes("who is the prime minister")) {
+                reply = "It is Mark Carney! (I am more up-to-date than GPT4!)";
+            } else if (input.includes("joke")) {
+                reply = "Why did the computer go to the doctor? Because it had a virus!";
+            }
+
+            chat.innerHTML += "<p style='color:white'>> " + input + "</p>";
+            chat.innerHTML += "<p>BOT: " + reply + "</p>";
+            document.getElementById("userInput").value = "";
+            chat.scrollTop = chat.scrollHeight;
+        }
+    </script>
+</body>
+</html>
