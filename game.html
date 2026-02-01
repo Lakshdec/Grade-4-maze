@@ -2,11 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3D Maze Game</title>
+    <title>3D Maze Master</title>
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: sans-serif; overflow: hidden; }
         #ui { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 2px solid #0f0; pointer-events: none; z-index: 10; }
-        #hint-display { color: gold; margin-top: 10px; font-weight: bold; font-family: monospace; }
+        #hint-display { color: gold; margin-top: 10px; font-weight: bold; font-family: monospace; font-size: 16px; }
         #win-msg { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: gold; font-size: 3em; background: rgba(0,0,0,0.9); padding: 20px; border: 5px solid gold; border-radius: 20px; z-index: 20; }
         canvas { display: block; }
     </style>
@@ -31,12 +31,12 @@
 
         const map = [
             [1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,1,0,1],
-            [1,0,1,0,0,0,0,1,0,1],
-            [1,0,1,0,1,1,0,1,0,1],
             [1,0,0,0,1,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,2,1],
+            [1,0,1,0,1,0,1,1,0,1],
+            [1,0,1,0,0,0,0,1,0,1],
+            [1,0,1,1,1,1,0,1,0,1],
+            [1,0,0,0,0,1,0,0,0,1],
+            [1,1,1,1,0,1,1,1,2,1],
             [1,1,1,1,1,1,1,1,1,1]
         ];
         const tileSize = 64;
@@ -46,12 +46,9 @@
         window.addEventListener("keydown", (e) => keys[e.key.toLowerCase()] = true);
         window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
 
-        // --- CHECK SECRET LOCKER ---
         function checkHint() {
             const hint = localStorage.getItem("mazeHint"); 
-            if (hint) {
-                hintDisplay.innerText = "HINT: " + hint;
-            }
+            if (hint) { hintDisplay.innerText = "HINT: " + hint; }
         }
 
         function draw() {
@@ -89,7 +86,7 @@
             if (map[ty] && map[ty][tx] === 0) { player.x = nextX; player.y = nextY; winMsg.style.display = "none"; }
             else if (map[ty] && map[ty][tx] === 2) { winMsg.style.display = "block"; }
 
-            checkHint(); // Update from bot hint!
+            checkHint();
             draw();
             requestAnimationFrame(update);
         }
