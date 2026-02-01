@@ -26,10 +26,10 @@
     </div>
 
     <script>
-        // 1. PASTE YOUR TOKEN BELOW!
+        // 1. YOUR TOKEN IS ALREADY HERE
         const API_TOKEN = "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"; 
         
-        // 2. UPDATED SMART ROUTER URL
+        // 2. NEW ROUTER URL (Fixes the connection glitch)
         const MODEL_URL = "https://router.huggingface.co";
 
         async function talk() {
@@ -38,12 +38,10 @@
             const userText = inputField.value.trim();
             if (!userText) return;
 
-            // Show User Message
             log.innerHTML += `<div class="msg user">${userText}</div>`;
             inputField.value = "";
             log.scrollTop = log.scrollHeight;
 
-            // Show Thinking
             const loadingId = "loading-" + Date.now();
             log.innerHTML += `<div class="msg bot" id="${loadingId}">Thinking...</div>`;
             log.scrollTop = log.scrollHeight;
@@ -61,13 +59,11 @@
                 const data = await response.json();
                 document.getElementById(loadingId).remove();
 
-                // Check if the AI is still "Waking Up"
                 if (data.error && data.error.includes("loading")) {
                     log.innerHTML += `<div class="msg bot"><b>Bot:</b> I am just waking up my brain. Give me 10 seconds and ask again!</div>`;
                 } else if (data.error) {
                     log.innerHTML += `<div class="msg bot"><b>Bot:</b> Connection glitch. Try again in a minute!</div>`;
                 } else {
-                    // Show real AI response
                     const reply = data.generated_text || "I'm a bit confused. Try again!";
                     log.innerHTML += `<div class="msg bot"><b>Bot:</b> ${reply}</div>`;
                 }
