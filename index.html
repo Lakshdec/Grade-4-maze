@@ -1,49 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>Grade 4 Super AI</title>
+    <title>AI Hint Master</title>
     <style>
-        body { background: #0f0f23; color: #00d4ff; font-family: 'Segoe UI', sans-serif; text-align: center; }
-        #chat-window { width: 90%; max-width: 600px; height: 400px; background: #1a1a2e; border: 2px solid #00d4ff; margin: 20px auto; padding: 20px; overflow-y: auto; border-radius: 15px; box-shadow: 0 0 20px #00d4ff; }
-        input { width: 70%; padding: 12px; border-radius: 10px; border: none; outline: none; }
-        button { padding: 12px 25px; border-radius: 10px; border: none; background: #00d4ff; color: #1a1a2e; cursor: pointer; font-weight: bold; }
-        .bot { color: #fff; background: #333; padding: 10px; border-radius: 10px; margin: 5px 0; text-align: left; }
-        .user { color: #00d4ff; text-align: right; margin: 5px 0; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; padding: 20px; }
+        #chat-window { width: 90%; max-width: 600px; height: 400px; border: 2px solid #0f0; margin: 20px auto; padding: 15px; overflow-y: auto; background: #111; text-align: left; border-radius: 10px; }
+        input { width: 70%; padding: 10px; background: #000; border: 1px solid #0f0; color: #0f0; outline: none; }
+        button { padding: 10px 20px; background: #0f0; color: #000; border: none; cursor: pointer; font-weight: bold; }
+        .bot { color: #0f0; margin: 10px 0; }
+        .user { color: #fff; margin: 10px 0; text-align: right; }
+        a { color: gold; text-decoration: none; font-size: 1.2em; }
     </style>
 </head>
 <body>
-
-    <h1>🧠 Super Brain AI</h1>
-    <div id="chat-window"><p class="bot">Bot: Hello! I am a smart AI. Ask me anything!</p></div>
-    <input type="text" id="userInput" placeholder="Ask a question...">
-    <button onclick="askAI()">ASK</button>
+    <h1>🤖 WIKI-BOT & HINT MASTER</h1>
+    <div id="chat-window"><p class="bot">SYSTEM ONLINE. Type a topic or ask for a "hint"!</p></div>
+    <input type="text" id="userInput" placeholder="Search Wiki or ask for 'hint'..." onkeypress="if(event.key === 'Enter') askAI()">
+    <button onclick="askAI()">SEND</button>
+    <br><br>
+    <a href="game.html">🕹️ OPEN 3D GAME</a>
 
     <script>
         async function askAI() {
-            const input = document.getElementById("userInput").value;
+            const inputField = document.getElementById("userInput");
+            const input = inputField.value.trim();
             const log = document.getElementById("chat-window");
             if (!input) return;
 
             log.innerHTML += `<div class="user">You: ${input}</div>`;
-            document.getElementById("userInput").value = "";
-            log.innerHTML += `<div class="bot" id="loading">Thinking...</div>`;
+            inputField.value = "";
             log.scrollTop = log.scrollHeight;
 
+            // --- 1. GAME HINT LOGIC ---
+            if (input.toLowerCase().includes("hint") || input.toLowerCase().includes("help")) {
+                const hint = "SECRET HINT: Go to the very bottom right corner to find the Gold!";
+                localStorage.setItem("mazeHint", hint); // This puts it in the secret mailbox
+                log.innerHTML += `<div class="bot">BOT: 🔑 Signal Sent! Check the 3D Game tab for your hint.</div>`;
+                return;
+            }
+
+            // --- 2. WIKI SEARCH LOGIC ---
+            const loadingId = "load-" + Date.now();
+            log.innerHTML += `<div class="bot" id="${loadingId}">[SEARCHING WIKIPEDIA...]</div>`;
+
             try {
-                // This connects to a real AI "Brain" for free
-                const response = await fetch("https://api-inference.huggingface.co", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ inputs: input })
-                });
+                const url = `https://en.wikipedia.org{encodeURIComponent(input)}?redirect=true&origin=*`;
+                const response = await fetch(url);
                 const data = await response.json();
                 
-                document.getElementById("loading").remove();
-                const reply = data[0].generated_text || "I'm sleepy. Ask again!";
-                log.innerHTML += `<div class="bot">Bot: ${reply}</div>`;
+                document.getElementById(loadingId).remove();
+                
+                let answer = data.extract || "I couldn't find that in the database. Try 'Mars' or 'Pizza'.";
+                log.innerHTML += `<div class="bot">BOT: ${answer}</div>`;
             } catch (error) {
-                document.getElementById("loading").innerText = "Error: Brain is tired!";
+                document.getElementById(loadingId).innerText = "ERROR: Connection Glitch!";
             }
             log.scrollTop = log.scrollHeight;
         }
