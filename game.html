@@ -1,50 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Minecraft Maze</title>
+    <title>3D Minecraft Maze: Levels</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
         #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; cursor: pointer; color: white; text-align: center; }
         canvas { display: block; }
-        #ui { position: absolute; top: 10px; left: 10px; color: #0f0; z-index: 50; pointer-events: none; font-family: monospace; }
+        #ui { position: absolute; top: 15px; left: 15px; color: #0f0; z-index: 50; pointer-events: none; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
+        
+        /* NEXT LEVEL BUTTON STYLING */
+        #win-screen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border: 5px solid gold; border-radius: 30px; z-index: 200; }
+        .level-btn { background: #ffd700; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 10px; font-size: 1.2em; color: black; transition: 0.3s; }
+        .level-btn:hover { background: white; transform: scale(1.1); }
     </style>
 </head>
 <body>
-    <div id="ui">LEVEL 1 | FIND THE GOLD</div>
+    <div id="ui">LEVEL <span id="lvl-num">1</span> | FIND THE GOLD</div>
+    
     <div id="click-to-start">
         <h1>🖱️ CLICK TO PLAY</h1>
         <p>W,A,S,D to Walk | Mouse to Look</p>
     </div>
+
+    <div id="win-screen">
+        <h1 style="color:gold;">🏆 LEVEL COMPLETE!</h1>
+        <button class="level-btn" id="next-lvl-btn">NEXT LEVEL</button>
+    </div>
+
     <canvas id="gameCanvas"></canvas>
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
         const startScreen = document.getElementById("click-to-start");
+        const winScreen = document.getElementById("win-screen");
+        const nextBtn = document.getElementById("next-lvl-btn");
+        const lvlDisplay = document.getElementById("lvl-num");
         
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // FIXED MAP: 1=Wall, 0=Path, 2=Gold Goal
-        const map = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 1, 1, 1, 1, 0, 1],
-            [1, 0, 1, 0, 0, 0, 0, 1, 0, 1],
-            [1, 0, 1, 0, 1, 1, 0, 1, 0, 1],
-            [1, 0, 0, 0, 1, 2, 0, 0, 0, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+        // MULTIPLE LEVELS
+        const levels = [
+            [ // Level 1
+               ,
+               ,
+               ,
+               ,
+               ,
+               ,
+               
+            ],
+            [ // Level 2 (The Maze is Harder!)
+               ,
+               ,
+               ,
+               ,
+               ,
+               ,
+               ,
+               ,
+               
+            ]
         ];
 
+        let currentLvl = 0;
+        let map = levels[currentLvl];
         const tileSize = 64;
         let player = { x: 96, y: 96, angle: 0 };
         let keys = {};
         let gameActive = false;
 
-        // Pointer Lock Controls
+        // Start & Pointer Lock
         startScreen.onclick = () => { canvas.requestPointerLock(); };
         document.addEventListener("pointerlockchange", () => {
             gameActive = (document.pointerLockElement === canvas);
             startScreen.style.display = gameActive ? "none" : "flex";
+            if (!gameActive && winScreen.style.display !== "block") {
+                // If they hit ESC, show the start screen again
+            }
         });
 
         document.onmousemove = (e) => { 
@@ -57,30 +90,30 @@
         function loop() {
             if(gameActive) {
                 let nx = player.x, ny = player.y;
-                let moveSpeed = 3;
-                if(keys['w']) { nx += Math.cos(player.angle)*moveSpeed; ny += Math.sin(player.angle)*moveSpeed; }
-                if(keys['s']) { nx -= Math.cos(player.angle)*moveSpeed; ny -= Math.sin(player.angle)*moveSpeed; }
-                if(keys['a']) { nx += Math.sin(player.angle)*moveSpeed; ny -= Math.cos(player.angle)*moveSpeed; }
-                if(keys['d']) { nx -= Math.sin(player.angle)*moveSpeed; ny += Math.cos(player.angle)*moveSpeed; }
+                let ms = 3.5; // Move Speed
+                if(keys['w']) { nx += Math.cos(player.angle)*ms; ny += Math.sin(player.angle)*ms; }
+                if(keys['s']) { nx -= Math.cos(player.angle)*ms; ny -= Math.sin(player.angle)*ms; }
+                if(keys['a']) { nx += Math.sin(player.angle)*ms; ny -= Math.cos(player.angle)*ms; }
+                if(keys['d']) { nx -= Math.sin(player.angle)*ms; ny += Math.cos(player.angle)*ms; }
                 
-                let tx = Math.floor(nx/tileSize);
-                let ty = Math.floor(ny/tileSize);
-                if(map[ty][tx] === 0 || map[ty][tx] === 2) { 
+                let tx = Math.floor(nx/tileSize), ty = Math.floor(ny/tileSize);
+                if(map[ty] && (map[ty][tx] === 0 || map[ty][tx] === 2)) { 
                     player.x = nx; player.y = ny; 
                 }
-                if(map[ty][tx] === 2) {
-                    alert("YOU FOUND THE GOLD!");
-                    location.reload();
+                
+                // Check for victory
+                if(map[ty] && map[ty][tx] === 2) {
+                    gameActive = false;
+                    document.exitPointerLock();
+                    winScreen.style.display = "block";
                 }
             }
 
-            // Draw Sky and Floor
+            // Draw
             ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height/2);
             ctx.fillStyle = "#222"; ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2);
 
-            // Raycasting
-            const fov = Math.PI / 3;
-            const rays = canvas.width / 4;
+            const fov = Math.PI / 3, rays = canvas.width / 4;
             for(let i=0; i<rays; i++) {
                 let ra = (player.angle - fov/2) + (i / rays) * fov;
                 let d = 0, hit = 0;
@@ -97,6 +130,22 @@
             }
             requestAnimationFrame(loop);
         }
+
+        // Click Next Level
+        nextBtn.onclick = () => {
+            currentLvl++;
+            if(currentLvl < levels.length) {
+                map = levels[currentLvl];
+                lvlDisplay.innerText = currentLvl + 1;
+                player = { x: 96, y: 96, angle: 0 };
+                winScreen.style.display = "none";
+                canvas.requestPointerLock();
+            } else {
+                alert("CONGRATULATIONS! YOU BEAT THE GAME!");
+                location.reload();
+            }
+        };
+
         loop();
     </script>
 </body>
