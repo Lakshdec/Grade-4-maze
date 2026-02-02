@@ -8,23 +8,24 @@
         #ui { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border: 2px solid #0f0; border-radius: 10px; z-index: 10; pointer-events: none; }
         #crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; border: 2px solid white; border-radius: 50%; transform: translate(-50%, -50%); z-index: 5; }
         
-        /* NEXT LEVEL BUTTON */
         #win-screen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border: 5px solid gold; border-radius: 30px; z-index: 100; }
         .gold-text { color: gold; font-size: 3em; font-weight: bold; }
-        .level-btn { background: #00ffcc; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 10px; font-size: 1.2em; margin-top: 20px; }
+        .level-btn { background: #00ffcc; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 10px; font-size: 1.2em; margin-top: 20px; color: black; }
         
-        #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); display: flex; justify-content: center; align-items: center; z-index: 200; cursor: pointer; }
+        #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 200; cursor: pointer; color: white; }
         canvas { display: block; }
     </style>
 </head>
 <body>
 
-    <div id="click-to-start"><h1>Click to Start (Pointer Lock)</h1></div>
+    <div id="click-to-start">
+        <h1>🖱️ CLICK TO START</h1>
+        <p>Use W,A,S,D to walk and MOUSE to look</p>
+    </div>
 
     <div id="ui">
         <b style="font-size: 1.2em;">🕹️ LEVEL <span id="lvl-num">1</span></b><br><br>
-        MOVE: <span style="color:white">W, S, A, D</span><br>
-        LOOK: <span style="color:white">MOUSE</span> (Minecraft Style)
+        GOAL: Find the <span style="color:gold">GOLD</span> wall!
     </div>
 
     <div id="crosshair"></div>
@@ -46,21 +47,25 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
+        // FIXED MAPS - 1=Wall, 0=Path, 2=Gold Goal
         const levels = [
-            [ // Level 1
+            [
                 [1,1,1,1,1,1,1,1],
                 [1,0,0,0,0,0,0,1],
-                [1,0,1,1,0,1,0,1],
-                [1,0,0,0,0,1,2,1],
+                [1,0,1,1,1,1,0,1],
+                [1,0,1,0,0,1,0,1],
+                [1,0,1,0,2,1,0,1],
+                [1,0,1,1,1,1,0,1],
+                [1,0,0,0,0,0,0,1],
                 [1,1,1,1,1,1,1,1]
             ],
-            [ // Level 2 (Harder)
+            [
                 [1,1,1,1,1,1,1,1,1,1],
                 [1,0,0,0,1,0,0,0,0,1],
                 [1,0,1,0,1,0,1,1,0,1],
-                [1,0,1,0,0,0,1,0,0,1],
-                [1,0,1,1,1,1,1,0,1,1],
-                [1,0,0,0,0,0,0,0,2,1],
+                [1,0,1,0,0,0,1,2,0,1],
+                [1,0,1,1,1,1,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,1],
                 [1,1,1,1,1,1,1,1,1,1]
             ]
         ];
@@ -72,7 +77,7 @@
         let keys = {};
         let gameActive = false;
 
-        // 1. POINTER LOCK (Minecraft Controls)
+        // Minecraft Pointer Lock
         startScreen.addEventListener("click", () => {
             canvas.requestPointerLock();
         });
@@ -88,8 +93,8 @@
         });
 
         document.addEventListener("mousemove", (e) => {
-            if (document.pointerLockElement === canvas) {
-                player.angle += e.movementX * 0.003; // Mouse sensitivity
+            if (gameActive) {
+                player.angle += e.movementX * 0.003;
             }
         });
 
@@ -97,6 +102,7 @@
         window.addEventListener("keyup", (e) => keys[e.key.toLowerCase()] = false);
 
         function draw() {
+            // Ceiling and Floor
             ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height/2);
             ctx.fillStyle = "#222"; ctx.fillRect(0, canvas.height/2, canvas.width, canvas.height/2);
 
@@ -106,16 +112,20 @@
             for (let i = 0; i < rays; i++) {
                 let rayAngle = (player.angle - fov/2) + (i / rays) * fov;
                 let dist = 0, hit = 0;
-                while (hit === 0 && dist < 1000) {
+                while (hit === 0 && dist < 1200) {
                     dist += 1;
                     let tx = Math.floor((player.x + Math.cos(rayAngle) * dist) / tileSize);
                     let ty = Math.floor((player.y + Math.sin(rayAngle) * dist) / tileSize);
-                    if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) hit = 1;
-                    else if (map[ty][tx] > 0) hit = map[ty][tx];
+                    
+                    if (ty < 0 || ty >= map.length || tx < 0 || tx >= map[0].length) {
+                        hit = 1;
+                    } else if (map[ty][tx] > 0) {
+                        hit = map[ty][tx];
+                    }
                 }
                 let fixDist = dist * Math.cos(rayAngle - player.angle);
                 let h = (tileSize * canvas.height) / fixDist;
-                let shade = 255 - (fixDist / 4);
+                let shade = Math.max(0, 255 - (fixDist / 4));
                 ctx.fillStyle = (hit === 2) ? `rgb(${shade}, ${shade*0.8}, 0)` : `rgb(0, ${shade}, ${shade/2})`;
                 ctx.fillRect(i * 4, (canvas.height - h) / 2, 4, h);
             }
@@ -125,13 +135,15 @@
             if (!gameActive) return;
 
             let nextX = player.x, nextY = player.y;
-            // Minecraft Style Movement: W/S forward, A/D strafe
-            if (keys['w']) { nextX += Math.cos(player.angle) * 3; nextY += Math.sin(player.angle) * 3; }
-            if (keys['s']) { nextX -= Math.cos(player.angle) * 3; nextY -= Math.sin(player.angle) * 3; }
-            if (keys['a']) { nextX += Math.sin(player.angle) * 3; nextY -= Math.cos(player.angle) * 3; }
-            if (keys['d']) { nextX -= Math.sin(player.angle) * 3; nextY += Math.cos(player.angle) * 3; }
+            let moveSpeed = 3.5;
+
+            if (keys['w']) { nextX += Math.cos(player.angle) * moveSpeed; nextY += Math.sin(player.angle) * moveSpeed; }
+            if (keys['s']) { nextX -= Math.cos(player.angle) * moveSpeed; nextY -= Math.sin(player.angle) * moveSpeed; }
+            if (keys['a']) { nextX += Math.sin(player.angle) * moveSpeed; nextY -= Math.cos(player.angle) * moveSpeed; }
+            if (keys['d']) { nextX -= Math.sin(player.angle) * moveSpeed; nextY += Math.cos(player.angle) * moveSpeed; }
 
             let tx = Math.floor(nextX / tileSize), ty = Math.floor(nextY / tileSize);
+            
             if (map[ty] && map[ty][tx] === 0) {
                 player.x = nextX; player.y = nextY;
             } else if (map[ty] && map[ty][tx] === 2) {
@@ -157,7 +169,7 @@
                 winScreen.style.display = "none";
                 canvas.requestPointerLock();
             } else {
-                alert("YOU BEAT ALL LEVELS!");
+                alert("CONGRATS! YOU BEAT THE WHOLE GAME!");
                 location.reload();
             }
         });
