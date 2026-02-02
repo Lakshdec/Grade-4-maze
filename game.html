@@ -121,6 +121,15 @@
         }
 
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
+        window.onkeydown = (e) => {
+    keys[e.key.toLowerCase()] = true;
+    
+    // --- THE SKIP CHEAT ---
+    if (e.key.toLowerCase() === 'l') {
+        victory(); // This triggers the Win Screen instantly!
+    }
+};
+
         window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
         document.onmousemove = (e) => { if (gameActive) player.angle += e.movementX * 0.003; };
 
@@ -173,3 +182,4 @@
     </script>
 </body>
 </html>
+
