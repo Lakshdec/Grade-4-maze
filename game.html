@@ -3,10 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Maze: Universal Edition</title>
+    <title>3D Maze: Ultimate Edition</title>
     <style>
         body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; touch-action: none; }
-        #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; cursor: pointer; color: white; text-align: center; }
+        /* THE CLICK SCREEN */
+        #click-to-start { 
+            position: absolute; width: 100%; height: 100%; 
+            background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
+            justify-content: center; align-items: center; z-index: 100; 
+            cursor: pointer; color: white; text-align: center;
+        }
         canvas { display: block; }
         
         /* TOUCH BUTTONS (Only for Mobile) */
@@ -18,8 +24,8 @@
 <body>
 
     <div id="click-to-start">
-        <h1>🎮 TAP TO START</h1>
-        <p>PC: WASD + Mouse | Mobile: On-screen Buttons</p>
+        <h1>🎮 START GAME</h1>
+        <p>PC: CLICK to Look | Mobile: USE BUTTONS</p>
     </div>
 
     <div id="controls">
@@ -37,16 +43,12 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // 1=Wall, 0=Floor, 2=Gold
         const map = [
-            [1, 1, 1, 1, 1, 1, 1, 1],
-            [1, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 1, 1, 0, 1, 0, 1],
-            [1, 0, 0, 1, 0, 0, 0, 1],
-            [1, 1, 0, 1, 1, 1, 0, 1],
-            [1, 0, 0, 0, 0, 1, 0, 1],
-            [1, 0, 1, 1, 0, 0, 2, 1],
-            [1, 1, 1, 1, 1, 1, 1, 1]
+          [1,1,1,1,1,1,1,1],
+          [1,0,0,0,0,0,0,1],
+          [1,0,1,1,0,1,0,1],
+          [1,0,0,0,0,0,2,1],
+          [1,1,1,1,1,1,1,1]
         ];
 
         const tileSize = 64;
@@ -54,40 +56,50 @@
         let keys = {};
         let gameActive = false;
 
-        // Start Game & Lock Mouse (PC)
-        startScreen.onclick = () => {
+        // FIXED: START LOGIC
+        startScreen.addEventListener('click', () => {
+            // Hide screen immediately
+            startScreen.style.display = "none";
+            gameActive = true;
+            
+            // Only request mouse lock if on PC
             if (!('ontouchstart' in window)) {
                 canvas.requestPointerLock();
             }
-            startScreen.style.display = "none";
-            gameActive = true;
-        };
+        });
 
-        // Keyboard & Mouse Look
+        // RE-SHOW START IF POINTER LOCK ESCAPED (PC ONLY)
+        document.addEventListener('pointerlockchange', () => {
+            if (document.pointerLockElement !== canvas && !('ontouchstart' in window)) {
+                startScreen.style.display = "flex";
+                gameActive = false;
+            }
+        });
+
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
         window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
+        
         document.onmousemove = (e) => { 
-            if (document.pointerLockElement === canvas) player.angle += e.movementX * 0.003; 
+            if (gameActive) player.angle += e.movementX * 0.003; 
         };
 
-        // Mobile Touch Listeners
         const bind = (id, k) => {
             const el = document.getElementById(id);
-            el.ontouchstart = (e) => { e.preventDefault(); keys[k] = true; };
-            el.ontouchend = (e) => { e.preventDefault(); keys[k] = false; };
+            el.addEventListener('touchstart', (e) => { e.preventDefault(); keys[k] = true; });
+            el.addEventListener('touchend', (e) => { e.preventDefault(); keys[k] = false; });
         };
         bind("up", "w"); bind("down", "s"); bind("left", "a"); bind("right", "d");
 
         function loop() {
             if (gameActive) {
                 let nx = player.x, ny = player.y;
-                let moveSpeed = 3;
-                if (keys['w']) { nx += Math.cos(player.angle) * moveSpeed; ny += Math.sin(player.angle) * moveSpeed; }
-                if (keys['s']) { nx -= Math.cos(player.angle) * moveSpeed; ny -= Math.sin(player.angle) * moveSpeed; }
-                if (keys['a']) { nx += Math.sin(player.angle) * moveSpeed; ny -= Math.cos(player.angle) * moveSpeed; }
-                if (keys['d']) { nx -= Math.sin(player.angle) * moveSpeed; ny += Math.cos(player.angle) * moveSpeed; }
+                let ms = 3;
+                if (keys['w']) { nx += Math.cos(player.angle)*ms; ny += Math.sin(player.angle)*ms; }
+                if (keys['s']) { nx -= Math.cos(player.angle)*ms; ny -= Math.sin(player.angle)*ms; }
+                if (keys['a']) { nx += Math.sin(player.angle)*ms; ny -= Math.cos(player.angle)*ms; }
+                if (keys['d']) { nx -= Math.sin(player.angle)*ms; ny += Math.cos(player.angle)*ms; }
 
-                let tx = Math.floor(nx / tileSize), ty = Math.floor(ny / tileSize);
+                let tx = Math.floor(nx/tileSize), ty = Math.floor(ny/tileSize);
                 if (map[ty] && (map[ty][tx] === 0 || map[ty][tx] === 2)) {
                     player.x = nx; player.y = ny;
                 }
@@ -97,25 +109,23 @@
                 }
             }
 
-            // Draw Background
-            ctx.fillStyle = "#111"; ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
-            ctx.fillStyle = "#222"; ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+            ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height/2);
+            ctx.fillStyle = "#222"; ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2);
 
-            // Raycasting
             const fov = Math.PI / 3, rays = canvas.width / 4;
             for (let i = 0; i < rays; i++) {
-                let ra = (player.angle - fov / 2) + (i / rays) * fov;
+                let ra = (player.angle - fov/2) + (i / rays) * fov;
                 let d = 0, hit = 0;
                 while (hit === 0 && d < 800) {
                     d += 2;
-                    let tx = Math.floor((player.x + Math.cos(ra) * d) / tileSize);
-                    let ty = Math.floor((player.y + Math.sin(ra) * d) / tileSize);
+                    let tx = Math.floor((player.x + Math.cos(ra)*d)/tileSize);
+                    let ty = Math.floor((player.y + Math.sin(ra)*d)/tileSize);
                     if (map[ty] && map[ty][tx] > 0) hit = map[ty][tx];
                 }
                 let h = (tileSize * canvas.height) / (d * Math.cos(ra - player.angle));
-                let shade = Math.max(0, 255 - (d / 4));
-                ctx.fillStyle = hit === 2 ? `rgb(${shade}, ${shade * 0.8}, 0)` : `rgb(0, ${shade}, ${shade / 3})`;
-                ctx.fillRect(i * 4, (canvas.height - h) / 2, 4, h);
+                let s = Math.max(0, 255 - (d / 4));
+                ctx.fillStyle = hit === 2 ? `rgb(${s}, ${s*0.8}, 0)` : `rgb(0, ${s}, ${s/3})`;
+                ctx.fillRect(i*4, (canvas.height-h)/2, 4, h);
             }
             requestAnimationFrame(loop);
         }
