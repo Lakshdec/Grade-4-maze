@@ -3,29 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>3D Maze: Ultimate Edition</title>
+    <title>3D Maze: Pro Levels</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: sans-serif; touch-action: none; }
-        /* THE CLICK SCREEN */
-        #click-to-start { 
+        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; touch-action: none; }
+        #start-screen, #win-screen { 
             position: absolute; width: 100%; height: 100%; 
             background: rgba(0,0,0,0.9); display: flex; flex-direction: column; 
             justify-content: center; align-items: center; z-index: 100; 
             cursor: pointer; color: white; text-align: center;
         }
+        #win-screen { display: none; background: rgba(0,255,150,0.2); backdrop-filter: blur(10px); }
         canvas { display: block; }
-        
-        /* TOUCH BUTTONS (Only for Mobile) */
+        #ui { position: absolute; top: 15px; left: 15px; color: #0f0; z-index: 50; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; border: 1px solid #0f0; pointer-events: none; }
         #controls { position: absolute; bottom: 20px; left: 20px; display: none; grid-template-columns: repeat(3, 60px); gap: 10px; z-index: 50; }
         .btn { width: 60px; height: 60px; background: rgba(255,255,255,0.2); border: 2px solid #0f0; color: #0f0; display: flex; justify-content: center; align-items: center; border-radius: 10px; font-weight: bold; user-select: none; }
         @media (pointer: coarse) { #controls { display: grid; } }
+        button { background: #0f0; color: #000; border: none; padding: 15px 30px; font-weight: bold; border-radius: 8px; cursor: pointer; font-size: 18px; margin-top: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="click-to-start">
+    <div id="start-screen">
         <h1>🎮 START GAME</h1>
-        <p>PC: CLICK to Look | Mobile: USE BUTTONS</p>
+        <p>Find the <span style="color:gold">GOLD</span> to advance!</p>
+        <button onclick="startGame()">ENTER MAZE</button>
+    </div>
+
+    <div id="win-screen">
+        <h1 style="color:gold;">🏆 LEVEL COMPLETE!</h1>
+        <p id="next-lvl-text">Ready for the next challenge?</p>
+        <button onclick="nextLevel()">NEXT LEVEL</button>
+    </div>
+
+    <div id="ui">
+        <b>🕹️ LEVEL: <span id="lvl-display">1</span></b><br>
+        W,A,S,D to Walk | Mouse to Look
     </div>
 
     <div id="controls">
@@ -38,50 +50,79 @@
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
-        const startScreen = document.getElementById("click-to-start");
-        
+        const startScreen = document.getElementById("start-screen");
+        const winScreen = document.getElementById("win-screen");
+        const lvlText = document.getElementById("lvl-display");
+
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        const map = [
-          [1,1,1,1,1,1,1,1],
-          [1,0,0,0,0,0,0,1],
-          [1,0,1,1,0,1,0,1],
-          [1,0,0,0,0,0,2,1],
-          [1,1,1,1,1,1,1,1]
+        // --- THE LEVEL DATA (0=Floor, 1=Wall, 2=Gold) ---
+        const allLevels = [
+            [ // Level 1: Simple Square
+                [1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,1],
+                [1,0,1,1,1,1,0,1],
+                [1,0,1,2,0,1,0,1],
+                [1,0,1,1,0,1,0,1],
+                [1,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1]
+            ],
+            [ // Level 2: The S-Curve
+                [1,1,1,1,1,1,1,1],
+                [1,0,0,0,1,0,0,1],
+                [1,1,1,0,1,0,1,1],
+                [1,0,0,0,1,0,0,1],
+                [1,0,1,1,1,1,0,1],
+                [1,0,0,0,0,1,2,1],
+                [1,1,1,1,1,1,1,1]
+            ],
+            [ // Level 3: The Spiral
+                [1,1,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1,1,0,1],
+                [1,0,1,0,0,0,0,1,0,1],
+                [1,0,1,0,1,1,0,1,0,1],
+                [1,0,1,0,1,2,0,1,0,1],
+                [1,0,1,0,1,1,1,1,0,1],
+                [1,0,1,0,0,0,0,0,0,1],
+                [1,0,1,1,1,1,1,1,1,1],
+                [1,0,0,0,0,0,0,0,0,1],
+                [1,1,1,1,1,1,1,1,1,1]
+            ]
         ];
 
+        let currentLvl = 0;
+        let map = allLevels[currentLvl];
         const tileSize = 64;
         let player = { x: 96, y: 96, angle: 0 };
         let keys = {};
         let gameActive = false;
 
-        // FIXED: START LOGIC
-        startScreen.addEventListener('click', () => {
-            // Hide screen immediately
+        function startGame() {
             startScreen.style.display = "none";
             gameActive = true;
-            
-            // Only request mouse lock if on PC
-            if (!('ontouchstart' in window)) {
-                canvas.requestPointerLock();
-            }
-        });
+            if (!('ontouchstart' in window)) canvas.requestPointerLock();
+        }
 
-        // RE-SHOW START IF POINTER LOCK ESCAPED (PC ONLY)
-        document.addEventListener('pointerlockchange', () => {
-            if (document.pointerLockElement !== canvas && !('ontouchstart' in window)) {
-                startScreen.style.display = "flex";
-                gameActive = false;
+        function nextLevel() {
+            currentLvl++;
+            if (currentLvl < allLevels.length) {
+                map = allLevels[currentLvl];
+                player = { x: 96, y: 96, angle: 0 };
+                lvlText.innerText = currentLvl + 1;
+                winScreen.style.display = "none";
+                gameActive = true;
+                if (!('ontouchstart' in window)) canvas.requestPointerLock();
+            } else {
+                alert("🏆 YOU ARE THE MAZE MASTER! ALL LEVELS BEATEN!");
+                location.reload();
             }
-        });
+        }
 
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
         window.onkeyup = (e) => keys[e.key.toLowerCase()] = false;
-        
-        document.onmousemove = (e) => { 
-            if (gameActive) player.angle += e.movementX * 0.003; 
-        };
+        document.onmousemove = (e) => { if (gameActive) player.angle += e.movementX * 0.003; };
 
         const bind = (id, k) => {
             const el = document.getElementById(id);
@@ -93,19 +134,18 @@
         function loop() {
             if (gameActive) {
                 let nx = player.x, ny = player.y;
-                let ms = 3;
+                let ms = 3.5;
                 if (keys['w']) { nx += Math.cos(player.angle)*ms; ny += Math.sin(player.angle)*ms; }
                 if (keys['s']) { nx -= Math.cos(player.angle)*ms; ny -= Math.sin(player.angle)*ms; }
                 if (keys['a']) { nx += Math.sin(player.angle)*ms; ny -= Math.cos(player.angle)*ms; }
                 if (keys['d']) { nx -= Math.sin(player.angle)*ms; ny += Math.cos(player.angle)*ms; }
 
                 let tx = Math.floor(nx/tileSize), ty = Math.floor(ny/tileSize);
-                if (map[ty] && (map[ty][tx] === 0 || map[ty][tx] === 2)) {
-                    player.x = nx; player.y = ny;
-                }
-                if (map[ty] && map[ty][tx] === 2) {
-                    alert("YOU WIN!");
-                    location.reload();
+                if (map[ty] && map[ty][tx] === 0) { player.x = nx; player.y = ny; }
+                else if (map[ty] && map[ty][tx] === 2) {
+                    gameActive = false;
+                    document.exitPointerLock?.();
+                    winScreen.style.display = "flex";
                 }
             }
 
@@ -116,7 +156,7 @@
             for (let i = 0; i < rays; i++) {
                 let ra = (player.angle - fov/2) + (i / rays) * fov;
                 let d = 0, hit = 0;
-                while (hit === 0 && d < 800) {
+                while (hit === 0 && d < 1000) {
                     d += 2;
                     let tx = Math.floor((player.x + Math.cos(ra)*d)/tileSize);
                     let ty = Math.floor((player.y + Math.sin(ra)*d)/tileSize);
@@ -124,7 +164,7 @@
                 }
                 let h = (tileSize * canvas.height) / (d * Math.cos(ra - player.angle));
                 let s = Math.max(0, 255 - (d / 4));
-                ctx.fillStyle = hit === 2 ? `rgb(${s}, ${s*0.8}, 0)` : `rgb(0, ${s}, ${s/3})`;
+                ctx.fillStyle = hit === 2 ? `rgb(${s}, ${s*0.8}, 0)` : `rgb(0, ${s}, ${s*0.5})`;
                 ctx.fillRect(i*4, (canvas.height-h)/2, 4, h);
             }
             requestAnimationFrame(loop);
