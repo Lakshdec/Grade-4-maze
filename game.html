@@ -1,29 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>3D Minecraft Maze: Levels</title>
+    <title>Universal 3D Maze</title>
     <style>
-        body { margin: 0; background: #000; overflow: hidden; font-family: 'Segoe UI', sans-serif; }
-        #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.8); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; cursor: pointer; color: white; text-align: center; }
+        body { margin: 0; background: #000; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        #click-to-start { position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 100; cursor: pointer; color: white; text-align: center; }
         canvas { display: block; }
-        #ui { position: absolute; top: 15px; left: 15px; color: #0f0; z-index: 50; pointer-events: none; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 5px; }
-        
-        /* NEXT LEVEL BUTTON STYLING */
-        #win-screen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: rgba(0,0,0,0.9); padding: 40px; border: 5px solid gold; border-radius: 30px; z-index: 200; }
-        .level-btn { background: #ffd700; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 10px; font-size: 1.2em; color: black; transition: 0.3s; }
-        .level-btn:hover { background: white; transform: scale(1.1); }
+        #ui { position: absolute; top: 15px; left: 15px; color: #0f0; z-index: 50; pointer-events: none; background: rgba(0,0,0,0.5); padding: 10px; border-radius: 8px; }
+        #win-screen { display: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; background: #000; padding: 40px; border: 5px solid gold; border-radius: 30px; z-index: 200; color: gold; }
+        .level-btn { background: gold; border: none; padding: 15px 30px; font-weight: bold; cursor: pointer; border-radius: 10px; font-size: 1.2em; color: black; }
     </style>
 </head>
 <body>
     <div id="ui">LEVEL <span id="lvl-num">1</span> | FIND THE GOLD</div>
     
     <div id="click-to-start">
-        <h1>🖱️ CLICK TO PLAY</h1>
-        <p>W,A,S,D to Walk | Mouse to Look</p>
+        <h1>🍎 MAC & WINDOWS READY</h1>
+        <p>Click anywhere to start</p>
+        <small>(W,A,S,D to Walk | Mouse to Look)</small>
     </div>
 
     <div id="win-screen">
-        <h1 style="color:gold;">🏆 LEVEL COMPLETE!</h1>
+        <h1>🏆 LEVEL COMPLETE!</h1>
         <button class="level-btn" id="next-lvl-btn">NEXT LEVEL</button>
     </div>
 
@@ -39,28 +37,9 @@
         canvas.width = window.innerWidth;
         canvas.height = window.innerHeight;
 
-        // MULTIPLE LEVELS
         const levels = [
-            [ // Level 1
-               ,
-               ,
-               ,
-               ,
-               ,
-               ,
-               
-            ],
-            [ // Level 2 (The Maze is Harder!)
-               ,
-               ,
-               ,
-               ,
-               ,
-               ,
-               ,
-               ,
-               
-            ]
+            [[1,1,1,1,1,1,1],[1,0,0,0,0,2,1],[1,0,1,1,1,0,1],[1,0,0,0,1,0,1],[1,1,1,0,1,0,1],[1,0,0,0,0,0,1],[1,1,1,1,1,1,1]],
+            [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,1,1,1,0,1],[1,0,1,0,0,0,0,1],[1,0,1,0,1,1,1,1],[1,0,0,0,0,0,2,1],[1,1,1,1,1,1,1,1]]
         ];
 
         let currentLvl = 0;
@@ -70,18 +49,31 @@
         let keys = {};
         let gameActive = false;
 
-        // Start & Pointer Lock
-        startScreen.onclick = () => { canvas.requestPointerLock(); };
-        document.addEventListener("pointerlockchange", () => {
-            gameActive = (document.pointerLockElement === canvas);
-            startScreen.style.display = gameActive ? "none" : "flex";
-            if (!gameActive && winScreen.style.display !== "block") {
-                // If they hit ESC, show the start screen again
+        // This works better on Safari/Mac
+        const startAction = () => {
+            if (canvas.requestPointerLock) {
+                canvas.requestPointerLock();
+            } else if (canvas.webkitRequestPointerLock) {
+                canvas.webkitRequestPointerLock();
             }
-        });
+        };
+
+        startScreen.onclick = startAction;
+
+        document.addEventListener("pointerlockchange", lockChange);
+        document.addEventListener("webkitpointerlockchange", lockChange);
+
+        function lockChange() {
+            gameActive = (document.pointerLockElement === canvas || document.webkitPointerLockElement === canvas);
+            startScreen.style.display = gameActive ? "none" : "flex";
+        }
 
         document.onmousemove = (e) => { 
-            if(gameActive) player.angle += e.movementX * 0.003; 
+            if(gameActive) {
+                // Mac trackpads can be sensitive, so we use a steady multiplier
+                let movementX = e.movementX || e.webkitMovementX || 0;
+                player.angle += movementX * 0.003; 
+            }
         };
 
         window.onkeydown = (e) => keys[e.key.toLowerCase()] = true;
@@ -90,7 +82,7 @@
         function loop() {
             if(gameActive) {
                 let nx = player.x, ny = player.y;
-                let ms = 3.5; // Move Speed
+                let ms = 3.5;
                 if(keys['w']) { nx += Math.cos(player.angle)*ms; ny += Math.sin(player.angle)*ms; }
                 if(keys['s']) { nx -= Math.cos(player.angle)*ms; ny -= Math.sin(player.angle)*ms; }
                 if(keys['a']) { nx += Math.sin(player.angle)*ms; ny -= Math.cos(player.angle)*ms; }
@@ -101,15 +93,13 @@
                     player.x = nx; player.y = ny; 
                 }
                 
-                // Check for victory
                 if(map[ty] && map[ty][tx] === 2) {
                     gameActive = false;
-                    document.exitPointerLock();
+                    document.exitPointerLock ? document.exitPointerLock() : document.webkitExitPointerLock();
                     winScreen.style.display = "block";
                 }
             }
 
-            // Draw
             ctx.fillStyle = "#111"; ctx.fillRect(0,0,canvas.width,canvas.height/2);
             ctx.fillStyle = "#222"; ctx.fillRect(0,canvas.height/2,canvas.width,canvas.height/2);
 
@@ -131,7 +121,6 @@
             requestAnimationFrame(loop);
         }
 
-        // Click Next Level
         nextBtn.onclick = () => {
             currentLvl++;
             if(currentLvl < levels.length) {
@@ -139,9 +128,9 @@
                 lvlDisplay.innerText = currentLvl + 1;
                 player = { x: 96, y: 96, angle: 0 };
                 winScreen.style.display = "none";
-                canvas.requestPointerLock();
+                startAction();
             } else {
-                alert("CONGRATULATIONS! YOU BEAT THE GAME!");
+                alert("CONGRATS MAC MASTER!");
                 location.reload();
             }
         };
