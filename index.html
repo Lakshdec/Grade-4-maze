@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <title>Satellite Fact Bot</title>
     <style>
-        body { background: #050510; color: #00f2ff; font-family: 'Segoe UI', sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; height: 100vh; }
-        #chat-window { width: 95%; max-width: 750px; height: 65vh; background: #161625; border: 2px solid #00f2ff; border-radius: 15px; padding: 20px; overflow-y: auto; margin-top: 20px; box-shadow: 0 0 20px rgba(0, 242, 255, 0.2); }
-        .msg { margin: 15px 0; padding: 15px; border-radius: 12px; line-height: 1.5; font-size: 17px; max-width: 85%; }
+        body { background: #050510; color: #00f2ff; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; height: 100vh; margin: 0; }
+        #chat-window { width: 95%; max-width: 750px; height: 65vh; background: #161625; border: 2px solid #00f2ff; border-radius: 15px; padding: 20px; overflow-y: auto; margin-top: 20px; }
+        .msg { margin: 15px 0; padding: 15px; border-radius: 12px; font-size: 17px; max-width: 85%; }
         .user { background: #0044ff; color: white; margin-left: auto; text-align: right; }
         .bot { background: #1a1a2e; color: #00f2ff; border-left: 3px solid #00f2ff; }
         .input-area { display: flex; width: 95%; max-width: 750px; gap: 10px; margin-top: 20px; }
@@ -16,14 +16,14 @@
 </head>
 <body>
     <h2>🛰️ SATELLITE DATA CORE</h2>
-    <div id="chat-window"><div class="msg bot">LINK SECURE. Search any topic...</div></div>
+    <div id="chat-window"><div class="msg bot">SYSTEM READY. Search any real-world topic...</div></div>
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Type a topic..." onkeypress="if(event.key === 'Enter') askBot()">
+        <input type="text" id="userInput" placeholder="Topic..." onkeypress="if(event.key==='Enter') askBot()">
         <button onclick="askBot()">RETRIEVE</button>
     </div>
 
     <script>
-        async function askBot() {
+        function askBot() {
             const inputField = document.getElementById("userInput");
             const log = document.getElementById("chat-window");
             const input = inputField.value.trim();
@@ -31,43 +31,31 @@
 
             log.innerHTML += `<div class="msg user">${input}</div>`;
             inputField.value = "";
+            
+            const loadingId = "load-" + Date.now();
+            log.innerHTML += `<div class="msg bot" id="${loadingId}">[📡 SCANNING...]</div>`;
             log.scrollTop = log.scrollHeight;
 
-            const loadingId = "load-" + Date.now();
-            log.innerHTML += `<div class="msg bot" id="${loadingId}">[📡 ACCESSING WIKIPEDIA...]</div>`;
-
-            try {
-                // NEW FORMAT: This uses the most stable Wikipedia API link
-                const url = "https://en.wikipedia.org?" + 
-                    new URLSearchParams({
-                        action: "query",
-                        prop: "extracts",
-                        exintro: "",
-                        explaintext: "",
-                        titles: input,
-                        format: "json",
-                        origin: "*" // The "Origin" trick
-                    });
-                
-                const response = await fetch(url);
-                const data = await response.json();
-                
+            const script = document.createElement('script');
+            script.src = `https://en.wikipedia.org{encodeURIComponent(input)}&format=json&callback=handleResponse&origin=*`;
+            
+            window.handleResponse = function(data) {
+                document.getElementById(loadingId).remove();
                 const pages = data.query.pages;
                 const pageId = Object.keys(pages)[0];
                 const extract = pages[pageId].extract;
-
-                document.getElementById(loadingId).remove();
 
                 if (extract) {
                     const summary = extract.split('.').slice(0, 3).join('.') + '.';
                     log.innerHTML += `<div class="msg bot"><b>RESULT:</b> ${summary}</div>`;
                 } else {
-                    log.innerHTML += `<div class="msg bot">No records found for "${input}".</div>`;
+                    log.innerHTML += `<div class="msg bot">No data found for "${input}". Try 'Space' or 'Pizza'.</div>`;
                 }
-            } catch (error) {
-                document.getElementById(loadingId).innerText = "❌ ERROR: Satellite signal blocked by Wi-Fi or Browser.";
-            }
-            log.scrollTop = log.scrollHeight;
+                log.scrollTop = log.scrollHeight;
+                document.body.removeChild(script);
+            };
+
+            document.body.appendChild(script);
         }
     </script>
 </body>
