@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>3D Maze: Shifting Walls</title>
+    <title>3D Maze: Pro Edition</title>
     <style>
         body { margin: 0; background: #000; color: #0f0; font-family: 'Segoe UI', sans-serif; overflow: hidden; }
         #ui { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; border: 2px solid #0f0; pointer-events: none; z-index: 10; }
@@ -42,34 +42,31 @@
         canvas.height = window.innerHeight;
 
         const levels = [
-            [ // Level 1 (The Original)
-                [1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,0,1],
-                [1,0,1,1,1,1,0,1],
-                [1,0,1,0,0,0,0,1],
-                [1,0,1,0,1,1,1,1],
-                [1,0,0,0,0,0,2,1],
-                [1,1,1,1,1,1,1,1]
+            [ // Level 1 (Classic)
+               [1,1,1,1,1,1,1,1],
+               [1,0,0,0,0,0,0,1],
+               [1,0,1,1,1,1,0,1],
+               [1,0,1,0,0,0,0,1],
+               [1,0,1,0,1,1,1,1],
+               [1,0,0,0,0,0,2,1],
+               [1,1,1,1,1,1,1,1]
             ],
-            [ // Level 2 (REALLY EASY - WIDE OPEN)
-                [1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,0,1],
-                [1,0,0,0,0,0,0,1],
-                [1,0,0,1,1,0,0,1],
-                [1,0,0,1,1,0,0,1],
-                [1,0,0,0,0,0,2,1],
-                [1,1,1,1,1,1,1,1]
+            [ // Level 2 (EASY - WIDE)
+               [1,1,1,1,1,1,1,1],
+               [1,0,0,0,0,0,0,1],
+               [1,0,0,0,0,0,0,1],
+               [1,0,0,0,1,0,0,1],
+               [1,0,0,0,0,0,2,1],
+               [1,1,1,1,1,1,1,1]
             ],
-            [ // Level 3 (SHIFTING MAZE)
-                [1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,0,0,1],
-                [1,0,1,0,1,0,1,0,1],
-                [1,0,0,0,0,0,0,0,1],
-                [1,0,1,0,1,0,1,0,1],
-                [1,0,0,0,0,0,0,0,1],
-                [1,0,1,0,1,0,1,0,1],
-                [1,0,0,0,0,0,0,2,1],
-                [1,1,1,1,1,1,1,1,1]
+            [ // Level 3 (SHIFTING)
+               [1,1,1,1,1,1,1,1,1,1],
+               [1,0,0,0,0,0,0,0,0,1],
+               [1,0,1,0,1,0,1,0,0,1],
+               [1,0,0,1,0,1,0,1,0,1],
+               [1,0,1,0,1,0,1,0,0,1],
+               [1,0,0,0,0,0,0,0,2,1],
+               [1,1,1,1,1,1,1,1,1,1]
             ]
         ];
 
@@ -79,16 +76,16 @@
         let player = { x: 96, y: 96, angle: 0 };
         let keys = {};
         let gameActive = false;
+        let isWinning = false;
 
         function shiftWalls() {
-            if (currentLevelIndex === 2) {
+            if (currentLevelIndex === 2 && gameActive) {
                 wallStatus.innerText = "SHIFTING...";
                 wallStatus.style.color = "red";
-                // Only randomize the middle parts of Level 3
                 for (let y = 1; y < map.length - 1; y++) {
                     for (let x = 1; x < map[y].length - 1; x++) {
                         if (map[y][x] !== 2 && !(y === 1 && x === 1)) {
-                            map[y][x] = Math.random() > 0.8 ? 1 : 0;
+                            map[y][x] = Math.random() > 0.85 ? 1 : 0;
                         }
                     }
                 }
@@ -98,12 +95,20 @@
                 }, 2000);
             }
         }
-        setInterval(shiftWalls, 60000); // 1 Minute Timer
+        setInterval(shiftWalls, 60000);
 
-        startScreen.onclick = () => { canvas.requestPointerLock(); };
+        startScreen.onclick = () => { 
+            if (!isWinning) canvas.requestPointerLock(); 
+        };
+
         document.addEventListener("pointerlockchange", () => {
             gameActive = (document.pointerLockElement === canvas);
-            startScreen.style.display = gameActive ? "none" : "flex";
+            // Only show start screen if we aren't currently looking at the win screen
+            if (!gameActive && !isWinning) {
+                startScreen.style.display = "flex";
+            } else {
+                startScreen.style.display = "none";
+            }
         });
 
         document.onmousemove = (e) => { if(gameActive) player.angle += e.movementX * 0.003; };
@@ -113,18 +118,16 @@
         function loop() {
             if(gameActive) {
                 let nx = player.x, ny = player.y;
-                let moveSpeed = 3.5;
-                if(keys['w']) { nx += Math.cos(player.angle)*moveSpeed; ny += Math.sin(player.angle)*moveSpeed; }
-                if(keys['s']) { nx -= Math.cos(player.angle)*moveSpeed; ny -= Math.sin(player.angle)*ms; }
-                if(keys['a']) { nx += Math.sin(player.angle)*moveSpeed; ny -= Math.cos(player.angle)*moveSpeed; }
-                if(keys['d']) { nx -= Math.sin(player.angle)*moveSpeed; ny += Math.cos(player.angle)*moveSpeed; }
+                let ms = 3.5;
+                if(keys['w']) { nx += Math.cos(player.angle)*ms; ny += Math.sin(player.angle)*ms; }
+                if(keys['s']) { nx -= Math.cos(player.angle)*ms; ny -= Math.sin(player.angle)*ms; }
+                if(keys['a']) { nx += Math.sin(player.angle)*ms; ny -= Math.cos(player.angle)*ms; }
+                if(keys['d']) { nx -= Math.sin(player.angle)*ms; ny += Math.cos(player.angle)*ms; }
                 
                 let tx = Math.floor(nx/tileSize), ty = Math.floor(ny/tileSize);
                 if(map[ty] && map[ty][tx] === 0) { player.x = nx; player.y = ny; }
                 else if(map[ty] && map[ty][tx] === 2) {
-                    gameActive = false;
-                    document.exitPointerLock();
-                    winScreen.style.display = "block";
+                    victory();
                 }
             }
 
@@ -149,16 +152,25 @@
             requestAnimationFrame(loop);
         }
 
+        function victory() {
+            isWinning = true;
+            gameActive = false;
+            document.exitPointerLock(); // Releases the mouse!
+            winScreen.style.display = "block";
+            startScreen.style.display = "none";
+        }
+
         nextBtn.onclick = () => {
             currentLevelIndex++;
             if(currentLevelIndex < levels.length) {
+                isWinning = false;
                 map = levels[currentLevelIndex];
                 document.getElementById("lvl-num").innerText = currentLevelIndex + 1;
                 player = { x: 96, y: 96, angle: 0 };
                 winScreen.style.display = "none";
                 canvas.requestPointerLock();
             } else {
-                alert("CONGRATS! YOU BEAT THE SHIFTING MAZE!");
+                alert("CONGRATS! GAME COMPLETE!");
                 location.reload();
             }
         };
